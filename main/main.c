@@ -5,6 +5,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
+#include "modules/cli.c"
 #include "modules/adc.h"
 
 #define BLINK_GPIO GPIO_NUM_2
@@ -25,14 +26,15 @@ static void configure_led(void) {
 
 void app_main(void) {
     // TODO: ADC range, PWM, cmd & BLE commands (PWM control, measurement control)
-
+// Initialize ESP Console
+    CLI_init();
     configure_led();
     ADC_init();
 
     while (1) {
         blink_led();
 
-        ESP_LOGI(__func__, "Value: %u mV", ADC_read());
+        // ESP_LOGI(__func__, "Value: %u mV", ADC_read());
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
 
