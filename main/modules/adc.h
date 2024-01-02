@@ -18,7 +18,7 @@ typedef struct {
 void ADC_init(void);
 
 Millivolt ADC_read(void);
-AdcMeas ADC_read_for(Seconds duration);
+void ADC_read_for(Seconds duration);
 
 void ADC_deinit();
 

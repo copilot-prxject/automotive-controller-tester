@@ -1,6 +1,7 @@
 #include "modules/adc.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "driver/gpio.h"
 #include "esp_log.h"
@@ -13,10 +14,15 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "modules/cli.h"
+
 
 static struct {
     bool interupt_measurements;
     bool calibrated;
+
+    bool ongoing;
+    Seconds duration;
 
     adc_oneshot_unit_handle_t adc1_handle;
     adc_cali_handle_t  adc1_cali_handle;
@@ -28,6 +34,30 @@ static struct {
     .default_atten = ADC_ATTEN_DB_11,
     .default_width = ADC_BITWIDTH_DEFAULT
 };
+
+
+static int command_execution(int argc, char **argv) {
+    if (argc == 1){
+        ESP_LOGI(__func__, "No arguments");
+    }
+
+    static const char now[] = "now";
+    static const char duration[] = "duration";
+    for (int i = 1; i < argc; i++) {
+        ESP_LOGI(__func__, "Arg %d: %s", i, argv[i]);
+        if (strncmp(now, argv[i], sizeof(now)) == 0) {
+            ESP_LOGI(__func__, "ADC: %u mV", ADC_read());
+        }
+        if (strncmp(duration, argv[i], sizeof(now)) == 0) {
+            if (argc > i + 1) {
+                ADC_read_for(atoi(argv[i + 1]));
+            }
+
+            return 0;
+        }
+    }
+    return 0;
+}
 
 /*---------------------------------------------------------------
         ADC Calibration
@@ -96,6 +126,8 @@ void ADC_init() {
 
     //-------------ADC1 Calibration Init---------------//
     ctx.calibrated = adc_calibration_init(ADC_UNIT_1, ctx.default_channel, ctx.default_atten, &ctx.adc1_cali_handle);
+
+    CLI_register_command("adc", "[now] [duration <time>]", command_execution);
 }
 
 Millivolt ADC_read() {
@@ -129,11 +161,11 @@ Millivolt ADC_read() {
     return meas;
 }
 
-AdcMeas ADC_read_for(Seconds duration) {
+static void read_for() {
     AdcMeas meas;
     // Initialize variables
     unsigned time = 0;
-    unsigned endTime = duration * 1000;
+    unsigned endTime = ctx.duration * 1000;
     unsigned step = 1000;
 
     int voltage = 0;
@@ -159,9 +191,15 @@ AdcMeas ADC_read_for(Seconds duration) {
 
     // Calculate average
     meas.avg = sum / (endTime / step);  // Calculate average over the measurement period
-    return meas;
+    ESP_LOGI(__func__, "ADC: [avg %u mV] [max %u mV] [min %u mv]", meas.avg, meas.max, meas.min);
+    vTaskDelete(NULL);
 }
 
+void ADC_read_for(Seconds duration) {
+    ctx.ongoing = true;
+    ctx.duration = duration;
+    xTaskCreate(read_for, "adc_read_for", 4096, NULL, 5, NULL);
+}
 
 static void example_adc_calibration_deinit(adc_cali_handle_t handle) {
 #if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
