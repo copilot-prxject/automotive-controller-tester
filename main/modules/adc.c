@@ -36,7 +36,7 @@ static struct {
 };
 
 
-static int command_execution(int argc, char **argv) {
+static int adc_command_execution(int argc, char **argv) {
     if (argc == 1){
         ESP_LOGI(__func__, "No arguments");
     }
@@ -59,9 +59,6 @@ static int command_execution(int argc, char **argv) {
     return 0;
 }
 
-/*---------------------------------------------------------------
-        ADC Calibration
----------------------------------------------------------------*/
 static bool adc_calibration_init(adc_unit_t unit, adc_channel_t channel, adc_atten_t atten, adc_cali_handle_t *out_handle) {
     adc_cali_handle_t handle = NULL;
     esp_err_t ret = ESP_FAIL;
@@ -127,7 +124,7 @@ void ADC_init() {
     //-------------ADC1 Calibration Init---------------//
     ctx.calibrated = adc_calibration_init(ADC_UNIT_1, ctx.default_channel, ctx.default_atten, &ctx.adc1_cali_handle);
 
-    CLI_register_command("adc", "[now] [duration <time>]", command_execution);
+    CLI_register_command("adc", "[now] [duration <time>]", adc_command_execution);
 }
 
 Millivolt ADC_read() {
@@ -172,7 +169,7 @@ static void read_for() {
     unsigned sum = 0;
     meas.min = ADC_MAX_VALUE;
     meas.max = 0;
-
+    meas.avg = 0;
     // Perform measurements for the specified duration
     while (time < endTime) {
         // Read ADC value

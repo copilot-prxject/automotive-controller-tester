@@ -7,8 +7,9 @@
 
 #include "modules/cli.c"
 #include "modules/adc.h"
+#include "modules/pwm.h"
 
-#define BLINK_GPIO GPIO_NUM_2
+#define BLINK_GPIO GPIO_NUM_19
 
 static uint8_t s_led_state = 0;
 
@@ -30,6 +31,7 @@ void app_main(void) {
     CLI_init();
     configure_led();
     ADC_init();
+    PWM_init();
 
     while (1) {
         blink_led();
