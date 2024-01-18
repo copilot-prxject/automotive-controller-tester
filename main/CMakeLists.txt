@@ -1,7 +1,6 @@
-idf_component_register(SRCS "main.c"
-                        "modules/cli.c"
-                        "modules/adc.c"
-                        "modules/pwm.c"
+file(GLOB_RECURSE SOURCES "*.c")
 
-                    SRC_DIRS "./modules" "./modules/base"
-                    INCLUDE_DIRS ".")
+set(INCLUDES "." "./modules/base")
+set(DEPENDENCIES "console" "bt" "driver" "esp_adc" "nvs_flash")
+
+idf_component_register(SRCS ${SOURCES} INCLUDE_DIRS ${INCLUDES} REQUIRES ${DEPENDENCIES})

@@ -15,6 +15,7 @@
 #include "freertos/task.h"
 
 #include "modules/cli.h"
+#include "modules/ble.h"
 
 
 static struct {
@@ -183,6 +184,8 @@ static void read_for() {
             meas.max = voltage;
 
         time += step;
+        ESP_LOGI(__func__, "ADC: [now: %u] [max %u mV] [min %u mv]", voltage, meas.max, meas.min);
+        BLE_UpdateValue(kVoltage, meas.avg);
         vTaskDelay(pdMS_TO_TICKS(step));
     }
 

@@ -8,6 +8,7 @@
 #include "modules/cli.c"
 #include "modules/adc.h"
 #include "modules/pwm.h"
+#include "modules/ble.h"
 
 #define BLINK_GPIO GPIO_NUM_19
 
@@ -28,10 +29,13 @@ static void configure_led(void) {
 void app_main(void) {
     // TODO: ADC range, PWM, cmd & BLE commands (PWM control, measurement control)
 // Initialize ESP Console
+    esp_log_level_set("*", ESP_LOG_DEBUG);
     CLI_init();
     configure_led();
     ADC_init();
     PWM_init();
+    if (BLE_init())
+        ESP_LOGI("Start", "Ble initilized");
 
     while (1) {
         blink_led();
