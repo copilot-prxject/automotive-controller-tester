@@ -10,37 +10,19 @@
 #include "modules/pwm.h"
 #include "modules/ble.h"
 
-#define BLINK_GPIO GPIO_NUM_19
-
-static uint8_t s_led_state = 0;
-
-static void blink_led(void) {
-    gpio_set_level(BLINK_GPIO, s_led_state);
-    s_led_state = !s_led_state;
-}
-
-static void configure_led(void) {
-    gpio_reset_pin(BLINK_GPIO);
-
-    /* Set the GPIO as a push/pull output */
-    gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
-}
 
 void app_main(void) {
-    // TODO: ADC range, PWM, cmd & BLE commands (PWM control, measurement control)
-// Initialize ESP Console
     esp_log_level_set("*", ESP_LOG_DEBUG);
     CLI_init();
-    configure_led();
     ADC_init();
-    PWM_init();
-    if (BLE_init())
-        ESP_LOGI("Start", "Ble initilized");
+
+    if (PWM_init() == false)
+        ESP_LOGE("Starting", "PWM not initilized");
+
+    if (BLE_init() == false)
+        ESP_LOGE("Starting", "Ble not initilized");
 
     while (1) {
-        blink_led();
-
-        // ESP_LOGI(__func__, "Value: %u mV", ADC_read());
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
 

@@ -60,6 +60,10 @@ static int adc_command_execution(int argc, char **argv) {
     return 0;
 }
 
+static void parse_ble_command(char *buffer, unsigned length) {
+    ADC_read_for(strtoul(buffer, NULL, 0));
+}
+
 static bool adc_calibration_init(adc_unit_t unit, adc_channel_t channel, adc_atten_t atten, adc_cali_handle_t *out_handle) {
     adc_cali_handle_t handle = NULL;
     esp_err_t ret = ESP_FAIL;
@@ -126,6 +130,7 @@ void ADC_init() {
     ctx.calibrated = adc_calibration_init(ADC_UNIT_1, ctx.default_channel, ctx.default_atten, &ctx.adc1_cali_handle);
 
     CLI_register_command("adc", "[now] [duration <time>]", adc_command_execution);
+    BLE_setup_characteristic_callback(kVoltage, parse_ble_command);
 }
 
 Millivolt ADC_read() {
@@ -171,8 +176,10 @@ static void read_for() {
     meas.min = ADC_MAX_VALUE;
     meas.max = 0;
     meas.avg = 0;
+    char buffer[11 + 11 + 11 + 11];
     // Perform measurements for the specified duration
     while (time < endTime) {
+        memset(buffer, 0, sizeof(buffer));
         // Read ADC value
         voltage = ADC_read();
         // Update sum, min, and max
@@ -185,7 +192,8 @@ static void read_for() {
 
         time += step;
         ESP_LOGI(__func__, "ADC: [now: %u] [max %u mV] [min %u mv]", voltage, meas.max, meas.min);
-        BLE_UpdateValue(kVoltage, meas.avg);
+        snprintf(buffer, sizeof(buffer), "%d,%d,%d,%d", voltage, meas.max, meas.min, meas.avg);
+        BLE_update_value(kVoltage, buffer);
         vTaskDelay(pdMS_TO_TICKS(step));
     }
 
@@ -203,11 +211,11 @@ void ADC_read_for(Seconds duration) {
 
 static void example_adc_calibration_deinit(adc_cali_handle_t handle) {
 #if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
-    ESP_LOGI(__func__, "deregister %s calibration scheme", "Curve Fitting");
+    ESP_LOGD(__func__, "deregister %s calibration scheme", "Curve Fitting");
     ESP_ERROR_CHECK(adc_cali_delete_scheme_curve_fitting(handle));
 
 #elif ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
-    ESP_LOGI(__func__, "deregister %s calibration scheme", "Line Fitting");
+    ESP_LOGD(__func__, "deregister %s calibration scheme", "Line Fitting");
     ESP_ERROR_CHECK(adc_cali_delete_scheme_line_fitting(handle));
 #endif
 }

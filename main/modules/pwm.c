@@ -15,6 +15,7 @@
 
 #include "modules/base/generic_fun.h"
 #include "modules/cli.h"
+#include "modules/ble.h"
 
 
 static struct {
@@ -34,8 +35,10 @@ static struct {
     .timer_num          = LEDC_TIMER_0,
     .timer_resolution   = LEDC_TIMER_13_BIT,
     .channel            = LEDC_CHANNEL_0,
-    .pin                = GPIO_NUM_18,
+    .pin                = GPIO_NUM_27,
 };
+
+// pwm duration 1000 duty 90 freq 10
 
 static unsigned GetDutyResolutionFromPercent(Percent duty) {
     if (duty > 100) {
@@ -127,6 +130,34 @@ static int update_command_execution(int argc, char **argv) {
     return 0;
 }
 
+// static void getValuesFromString(char *buffer, ) {
+
+// }
+
+static void parse_ble_command(char *buffer, unsigned length) {
+    unsigned values[4] = { 0 };
+    unsigned i = 0;
+    char *end = buffer;
+    while(*end) {
+        values[i] = strtoul(buffer, &end, 10);
+        while (*end == ',')
+            end++;
+        
+        buffer = end;
+        ++i;
+    }
+
+    if (values[0] != 0) {    // force
+        PWM_stop();
+        StopTimer();
+    }
+
+    if (values[1] != 0) {
+        ctx.freq = values[3]; 
+        PWM_trigger_for(values[1], ctx.freq, values[2]);
+    }
+}
+
 bool PWM_init(void) {
     ledc_timer_config_t pwm_timer = {
         .speed_mode = ctx.speed_mode,
@@ -150,6 +181,7 @@ bool PWM_init(void) {
     if (ret) {
         CLI_register_command("pwm", "[force] [duration <time>] [duty <duty>] [freq <frequency>]", pwm_command_execution);
         CLI_register_command("pwm-update", "[duty <duty>] [freq <frequency>]", update_command_execution);
+        BLE_setup_characteristic_callback(kPWM, parse_ble_command);
     }
     return ret;
 }
