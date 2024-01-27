@@ -8,6 +8,7 @@
 #include "modules/cli.c"
 #include "modules/adc.h"
 #include "modules/pwm.h"
+#include "modules/relay.h"
 #include "modules/ble.h"
 
 
@@ -15,6 +16,9 @@ void app_main(void) {
     esp_log_level_set("*", ESP_LOG_DEBUG);
     CLI_init();
     ADC_init();
+
+    if (RELAY_init() == false)
+        ESP_LOGE("Starting", "Relay not initilized");
 
     if (PWM_init() == false)
         ESP_LOGE("Starting", "PWM not initilized");

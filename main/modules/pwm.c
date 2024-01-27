@@ -84,7 +84,7 @@ static int pwm_command_execution(int argc, char **argv) {
     }
 
     static const char force[] = "force";
-    if (FoundUnsignedArgument(argc, argv, force, NULL) < argc && ctx.ongoing) {
+    if (FoundUnsignedArgument(argc, argv, force, NULL) && ctx.ongoing) {
         PWM_stop();
         StopTimer();
     }
