@@ -4,11 +4,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "modules/base/types.h"
-
-// bool AreStringsTheSame(const char *first, const char *second, unsigned length);
-bool AreStringsTheSame(const char *first, const char *second, unsigned length) {
-    return strncmp(first, second, length) == 0;
-}
+bool AreStringsTheSame(const char *first, const char *second, unsigned length);
 
 #endif // GENERIC_FUN_H
