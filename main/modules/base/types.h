@@ -12,3 +12,9 @@ typedef uint32_t Milliamper;
 
 typedef uint32_t Herz;
 typedef uint32_t Percent;
+
+typedef struct {
+    Millivolt min;
+    Millivolt max;
+    Millivolt avg;
+} AdcMeas;

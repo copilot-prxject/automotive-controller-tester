@@ -1,4 +1,4 @@
-#include "modules/adc.h"
+#include "modules/ct.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -19,10 +19,10 @@
 
 // Define constants
 #define ADC_MAX_VALUE 4095
-#define ADC_REF_VOLTAGE 3.3
-
 
 static struct {
+    Millivolt max_ct_voltage;
+    unsigned ratio;
     bool interupt_measurements;
     bool calibrated;
 
@@ -35,7 +35,9 @@ static struct {
     adc_atten_t default_atten;
     adc_bitwidth_t default_width;
 } ctx = {
-    .default_channel = ADC_CHANNEL_6,
+    .maxzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz_ct_voltage = 330,
+    .ratio = 1000;
+    .default_channel = ADC_CHANNEL_5,
     .default_atten = ADC_ATTEN_DB_11,
     .default_width = ADC_BITWIDTH_DEFAULT
 };
@@ -51,7 +53,7 @@ static int adc_command_execution(int argc, char **argv) {
     for (int i = 1; i < argc; i++) {
         ESP_LOGI(__func__, "Arg %d: %s", i, argv[i]);
         if (strncmp(now, argv[i], sizeof(now)) == 0) {
-            ESP_LOGI(__func__, "ADC: %u mV", ADC_read());
+            ESP_LOGI(__func__, "CT: %u mV", ADC_read());
         }
         if (strncmp(duration, argv[i], sizeof(now)) == 0) {
             if (argc > i + 1) {
@@ -65,7 +67,7 @@ static int adc_command_execution(int argc, char **argv) {
 }
 
 static void parse_ble_command(char *buffer, unsigned length) {
-    ADC_read_for(strtoul(buffer, NULL, 0));
+    CT_read_for(strtoul(buffer, NULL, 0));
 }
 
 static bool adc_calibration_init(adc_unit_t unit, adc_channel_t channel, adc_atten_t atten, adc_cali_handle_t *out_handle) {
@@ -116,7 +118,7 @@ static bool adc_calibration_init(adc_unit_t unit, adc_channel_t channel, adc_att
     return calibrated;
 }
 
-void ADC_init() {
+void CT_init(void) {
     // Initialize ADC configuration here
     adc_oneshot_unit_init_cfg_t init_config = {
         .unit_id = ADC_UNIT_1,
@@ -137,7 +139,7 @@ void ADC_init() {
     BLE_setup_characteristic_callback(kVoltage, parse_ble_command);
 }
 
-Millivolt ADC_read() {
+Milliamper CT_read(void) {
     // Initialize variables
     Millivolt meas;
     unsigned sample = 0;
@@ -163,7 +165,7 @@ Millivolt ADC_read() {
 
     // Calculate average
     meas = sum / samples;
-    ESP_LOGD(__func__, "ADC%d Channel[%d] Cali Voltage Avg: %d mV", ADC_UNIT_1 + 1, ctx.default_channel, meas);
+    ESP_LOGD(__func__, "CT Channel[%d] Cali Voltage Avg: %d mV, %d A", ctx.default_channel, meas, meas / ctx.max_ct_voltage * ctx.ratio);
 
     return meas;
 }
@@ -195,7 +197,8 @@ static void read_for() {
             meas.max = voltage;
 
         time += step;
-        ESP_LOGI(__func__, "ADC: [now: %u] [max %u mV] [min %u mv]", voltage, meas.max, meas.min);
+        // meas / ctx.max_ct_voltage * ctx.ratio
+        ESP_LOGI(__     func__, "CT: [now: %u] [max %u mV] [min %u mv]", voltage, meas.max, meas.min);
         snprintf(buffer, sizeof(buffer), "%d,%d,%d,%d", voltage, meas.max, meas.min, meas.avg);
         BLE_update_value(kVoltage, buffer);
         vTaskDelay(pdMS_TO_TICKS(step));
