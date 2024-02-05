@@ -36,6 +36,8 @@
 #define GATT_VOLTAE_MEASURE 0x5004
 #define GATT_PWM 0x5005
 #define GATT_RELAY 0x5006
+#define GATT_TEMPERATURE_CTRL 0x5007
+#define GATT_TEMPERATURE 0x5008
 
 static uint8_t own_addr_type = 0;
 static uint16_t conn_handle;
@@ -54,10 +56,39 @@ static struct {
     .callback_pwm = NULL,
     .callback_relay = NULL,
     .notify_chr = {
-        { .name = kVoltage, .handle = 0, .callback = NULL},
-        { .name = kCurrent, .handle = 0, .callback = NULL},
+        { .name = kVoltage,     .handle = 0, .callback = NULL},
+        { .name = kCurrent,     .handle = 0, .callback = NULL},
+        { .name = kTemperature, .handle = 0, .callback = NULL},
     },
 };
+
+static int voltage_ctrl_callback(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg) {
+    ESP_LOGI(__func__, "Voltage callback");
+
+    ESP_LOGI(__func__, "Operation type: %d", ctxt->op);
+    if (ctxt->op == BLE_GATT_ACCESS_OP_WRITE_CHR) {
+        char parameters[10 + 1] = { 0 };
+        struct os_mbuf *om;
+        om = ctxt->om;
+        uint8_t len = os_mbuf_len(om);
+        len = len < sizeof(parameters) ? len : sizeof(parameters);
+
+        assert(os_mbuf_copydata(om, 0, len, parameters) == 0);
+
+        // parameters[len] = '\0';
+        ESP_LOG_BUFFER_HEX("Incomming bytes:", parameters, len);
+        ESP_LOGI(__func__, "Value: %s", parameters);
+        ctx.notify_chr[kVoltage].callback(parameters, len);
+        return 0;
+    }
+
+    if (ctxt->op == BLE_GATT_ACCESS_OP_READ_CHR) {
+        int rc = os_mbuf_append(ctxt->om, &ctx.notify_chr[kVoltage].value, sizeof(ctx.notify_chr[kVoltage].value));
+        return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
+    }
+
+    return 0;
+}
 
 static int current_ctrl_callback(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg) {
     ESP_LOGI(__func__, "Current callback");
@@ -88,8 +119,8 @@ static int current_ctrl_callback(uint16_t conn_handle, uint16_t attr_handle, str
     return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
 }
 
-static int voltage_ctrl_callback(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg) {
-    ESP_LOGI(__func__, "Voltage callback");
+static int temperature_ctrl_callback(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg) {
+    ESP_LOGI(__func__, "Temperature callback");
 
     ESP_LOGI(__func__, "Operation type: %d", ctxt->op);
     if (ctxt->op == BLE_GATT_ACCESS_OP_WRITE_CHR) {
@@ -104,12 +135,12 @@ static int voltage_ctrl_callback(uint16_t conn_handle, uint16_t attr_handle, str
         // parameters[len] = '\0';
         ESP_LOG_BUFFER_HEX("Incomming bytes:", parameters, len);
         ESP_LOGI(__func__, "Value: %s", parameters);
-        ctx.notify_chr[kVoltage].callback(parameters, len);
+        ctx.notify_chr[kTemperature].callback(parameters, len);
         return 0;
     }
 
     if (ctxt->op == BLE_GATT_ACCESS_OP_READ_CHR) {
-        int rc = os_mbuf_append(ctxt->om, &ctx.notify_chr[kVoltage].value, sizeof(ctx.notify_chr[kVoltage].value));
+        int rc = os_mbuf_append(ctxt->om, &ctx.notify_chr[kTemperature].value, sizeof(ctx.notify_chr[kTemperature].value));
         return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
     }
 
@@ -287,6 +318,17 @@ static const struct ble_gatt_svc_def kBleServices[] = {
              .uuid = BLE_UUID16_DECLARE(GATT_RELAY),
              .access_cb = relay_ctrl_callback,
              .flags = BLE_GATT_CHR_F_WRITE,
+         },
+        {
+             .uuid = BLE_UUID16_DECLARE(GATT_TEMPERATURE_CTRL),
+             .access_cb = temperature_ctrl_callback,
+             .flags = BLE_GATT_CHR_F_WRITE,
+         },
+         {
+             .uuid = BLE_UUID16_DECLARE(GATT_TEMPERATURE),
+             .access_cb = temperature_ctrl_callback,
+             .val_handle = &ctx.notify_chr[kTemperature].handle,
+             .flags = BLE_GATT_CHR_F_NOTIFY,
          },
          {
              0,

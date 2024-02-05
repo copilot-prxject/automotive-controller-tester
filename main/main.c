@@ -1,21 +1,22 @@
-#include <stdio.h>
-
-#include <esp_log.h>
 #include <driver/gpio.h>
+#include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <stdio.h>
 
+#include "modules/ble.h"
 #include "modules/cli.c"
 #include "modules/adc.h"
+#include "modules/ds_sensor.h"
 #include "modules/pwm.h"
 #include "modules/relay.h"
-#include "modules/ble.h"
 
 
 void app_main(void) {
     esp_log_level_set("*", ESP_LOG_DEBUG);
     CLI_init();
     ADC_init();
+    DS_SENSOR_init();
 
     if (RELAY_init() == false)
         ESP_LOGE("Starting", "Relay not initilized");
@@ -31,4 +32,5 @@ void app_main(void) {
     }
 
     ADC_deinit();
+    DS_SENSOR_deinit();
 }
