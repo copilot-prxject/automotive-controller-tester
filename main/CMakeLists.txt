@@ -1,6 +1,6 @@
 file(GLOB_RECURSE SOURCES "*.c")
 
 set(INCLUDES "." "./modules/base")
-set(DEPENDENCIES "console" "bt" "driver" "esp_adc" "nvs_flash")
+set(DEPENDENCIES "console" "bt" "driver" "esp_adc" "nvs_flash" "esp32-ds18b20" "esp32-owb")
 
 idf_component_register(SRCS ${SOURCES} INCLUDE_DIRS ${INCLUDES} REQUIRES ${DEPENDENCIES})

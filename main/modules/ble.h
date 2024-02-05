@@ -8,6 +8,7 @@
 typedef enum {
     kVoltage = 0,
     kCurrent,
+    kTemperature,
 // sentinel
     kLastMeasurementChr,
 
