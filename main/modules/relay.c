@@ -32,19 +32,19 @@ static bool FoundArgument(int argc, char **argv, const char *arg) {
     return false;
 }
 
+static const char state_on[] = "on";
+static const char state_off[] = "off";
 static int relay_command_execution(int argc, char **argv) {
     if (argc == 1){
         ESP_LOGI(__func__, "No arguments");
         return 0;
     }
 
-    static const char state_on[] = "on";
     if (FoundArgument(argc, argv, state_on)){
         RELAY_set_state(true);
         ctx.last_state = true;
     }
 
-    static const char state_off[] = "off";
     if (FoundArgument(argc, argv, state_off)){
         RELAY_set_state(false);
         ctx.last_state = false;
@@ -58,14 +58,24 @@ static void parse_ble_command(char *buffer, unsigned length) {
     if (length == 0)
         return;
 
-    unsigned value = strtoul(buffer, NULL, 0);
+    if (AreStringsTheSame(state_off, buffer, strlen(state_off)) == true) {
+        RELAY_set_state(false);
+        ctx.last_state = false;
+    }
+
+    if (AreStringsTheSame(state_on, buffer, strlen(state_on)) == true) {
+        RELAY_set_state(true);
+        ctx.last_state = true;
+    }
+
+    unsigned value = strtoul(buffer, buffer + length, 0);
     RELAY_set_state(value);
     ctx.last_state = value;
     ESP_LOGI(__func__, "RELAY: %s", ctx.last_state ? "on" : "off");
 }
 
 bool RELAY_set_state(bool state) {
-     esp_err_t err = gpio_set_level(GPIO_NUM_14, !state);
+    esp_err_t err = gpio_set_level(GPIO_NUM_14, state);
     if (err != ESP_OK) {
         ESP_LOGW(__func__, "Problem with pin: %s", esp_err_to_name(err));
         return false;
@@ -94,10 +104,10 @@ bool RELAY_init(void) {
         return false;
     }
 
-    RELAY_set_state(false);
 
     CLI_register_command("relay", "[on] [off]", relay_command_execution);
     BLE_setup_characteristic_callback(kRelay, parse_ble_command);
+    RELAY_set_state(false);
     return true;
 }
 

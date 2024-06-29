@@ -19,8 +19,12 @@
 
 // Define constants
 #define ADC_MAX_VALUE 4095
-#define ADC_REF_VOLTAGE 3.3
 
+typedef struct {
+    Millivolt min;
+    Millivolt max;
+    Millivolt avg;
+} AdcMeas;
 
 static struct {
     bool interupt_measurements;
@@ -28,6 +32,8 @@ static struct {
 
     bool ongoing;
     Seconds duration;
+    unsigned resistor_r1;
+    unsigned resistor_r2;
 
     adc_oneshot_unit_handle_t adc1_handle;
     adc_cali_handle_t  adc1_cali_handle;
@@ -35,9 +41,12 @@ static struct {
     adc_atten_t default_atten;
     adc_bitwidth_t default_width;
 } ctx = {
-    .default_channel = ADC_CHANNEL_6,
-    .default_atten = ADC_ATTEN_DB_11,
-    .default_width = ADC_BITWIDTH_DEFAULT
+    .resistor_r1        = 1500,
+    .resistor_r2        = 8300,
+
+    .default_channel    = ADC_CHANNEL_6,
+    .default_atten      = ADC_ATTEN_DB_11,
+    .default_width      = ADC_BITWIDTH_DEFAULT
 };
 
 
@@ -117,6 +126,7 @@ static bool adc_calibration_init(adc_unit_t unit, adc_channel_t channel, adc_att
 }
 
 void ADC_init() {
+    
     // Initialize ADC configuration here
     adc_oneshot_unit_init_cfg_t init_config = {
         .unit_id = ADC_UNIT_1,
@@ -159,10 +169,20 @@ Millivolt ADC_read() {
         sum += voltage;
         sample += 1;
         vTaskDelay(pdMS_TO_TICKS(step));
+        // ESP_LOGI(__func__, "ADCRaw raw: %d mV after Rs: %d", voltage, voltage * (ctx.resistor_r1 + ctx.resistor_r2) / ctx.resistor_r1);
     }
 
     // Calculate average
     meas = sum / samples;
+
+    ESP_LOGD(__func__, "ADC%d Channel[%d] Raw Avg: %d mV", ADC_UNIT_1 + 1, ctx.default_channel, meas);
+    // Voltage divider
+    meas = meas * (ctx.resistor_r1 + ctx.resistor_r2) / ctx.resistor_r1;
+    // use calibration value
+    // -46 + 0,0225x + 4,94E-07x^2
+    // -20.1 + 0.0138 x + 9,75E-07 x^2
+    // meas -= 0.000000494 * (meas * meas) + 0.0225 * meas - 46;
+    meas -= 0.000000975 * (meas * meas) + 0.0138 * meas - 20.1;
     ESP_LOGD(__func__, "ADC%d Channel[%d] Cali Voltage Avg: %d mV", ADC_UNIT_1 + 1, ctx.default_channel, meas);
 
     return meas;
@@ -177,7 +197,7 @@ static void read_for() {
 
     int voltage = 0;
     unsigned sum = 0;
-    meas.min = ADC_MAX_VALUE;
+    meas.min = ADC_read();
     meas.max = 0;
     meas.avg = 0;
     char buffer[11 + 11 + 11 + 11];

@@ -8,9 +8,9 @@
 
 void CT_init(void);
 
-Milliamper CT_read(void);
+Amper CT_read(void);
 void CT_read_for(Seconds duration);
 
-void CT_deinit();
+void CT_deinit(void);
 
 #endif // CT_H

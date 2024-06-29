@@ -101,11 +101,11 @@ static int current_ctrl_callback(uint16_t conn_handle, uint16_t attr_handle, str
         uint8_t len = os_mbuf_len(om);
         len = len < sizeof(parameters) ? len : sizeof(parameters);
         assert(os_mbuf_copydata(om, 0, len, parameters) == 0);
+
         // parameters[len] = '\0';
         ESP_LOG_BUFFER_HEX("Bytes:", parameters, len);
         ESP_LOGI(__func__, "Value: %s", parameters);
-
-        // ctx.notify_chr[kCurrent].callback(parameters, len);
+        ctx.notify_chr[kCurrent].callback(parameters, len);
         return 0;
     }
 
@@ -158,6 +158,7 @@ static int pwm_ctrl_callback(uint16_t conn_handle, uint16_t attr_handle, struct 
         uint8_t len = os_mbuf_len(om);
         len = len < sizeof(parameters) ? len : sizeof(parameters);
         assert(os_mbuf_copydata(om, 0, len, parameters) == 0);
+
         // parameters[len] = '\0';
         ESP_LOG_BUFFER_HEX("Bytes:", parameters, len);
         ESP_LOGI(__func__, "Value: %s", parameters);
@@ -179,10 +180,11 @@ static int relay_ctrl_callback(uint16_t conn_handle, uint16_t attr_handle, struc
         uint8_t len = os_mbuf_len(om);
         len = len < sizeof(parameters) ? len : sizeof(parameters);
         assert(os_mbuf_copydata(om, 0, len, parameters) == 0);
+
         // parameters[len] = '\0';
         ESP_LOG_BUFFER_HEX("Bytes:", parameters, len);
         ESP_LOGI(__func__, "Value: %s", parameters);
-        // parse_relay_parameters(parametes);
+        ctx.callback_relay((char*)parameters, len);
         return 0;
     }
 
@@ -479,6 +481,7 @@ void BLE_setup_characteristic_callback(Characteristic name, CharacteristicCallba
 void BLE_update_value(Characteristic name, char *buffer) {
     // int rc;
     // ctx.notify_chr[name].value = value;
+    // ESP_LOGE(__func__, "noti: %s", buffer);
     strncpy(ctx.notify_chr[name].value, buffer, sizeof(ctx.notify_chr[name].value));
     struct os_mbuf *om;
     om = ble_hs_mbuf_from_flat(&ctx.notify_chr[name].value, sizeof(ctx.notify_chr[name].value));
