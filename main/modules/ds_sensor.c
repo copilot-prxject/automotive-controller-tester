@@ -140,7 +140,7 @@ Temperatures DS_SENSOR_read(void) {
         }
 
         // Print results in a separate loop, after all have been read
-        ESP_LOGI(__func__, "\nTemperature readings (degrees C):");
+        // ESP_LOGI(__func__, "\nTemperature readings (degrees C):");
         for (int i = 0; i < ctx.num_devices; ++i) {
             if (errors[i] != DS18B20_OK)
                 printf("\nTemperature readings error: %d\n", errors[i]);

@@ -35,7 +35,8 @@ static struct {
     .timer_num          = LEDC_TIMER_0,
     .timer_resolution   = LEDC_TIMER_13_BIT,
     .channel            = LEDC_CHANNEL_0,
-    .pin                = GPIO_NUM_27,
+    // .pin                = GPIO_NUM_27,
+    .pin                = GPIO_NUM_33,
 };
 
 // pwm duration 1000 duty 90 freq 10
@@ -154,7 +155,7 @@ static void parse_ble_command(char *buffer, unsigned length) {
 
     if (values[1] != 0) {
         ctx.freq = values[3]; 
-        PWM_trigger_for(values[1], ctx.freq, values[2]);
+        PWM_trigger_for(values[1], values[2], ctx.freq);
     }
 }
 
@@ -186,7 +187,7 @@ bool PWM_init(void) {
     return ret;
 }
 
-bool PWM_trigger_for(Seconds duration, Herz freq, Percent duty) {
+bool PWM_trigger_for(Seconds duration, Percent duty, Herz freq) {
     ctx.ongoing = true;
     ctx.timer_duration = xTimerCreate("PWMTimer",
                             pdMS_TO_TICKS(1000 * duration),  // Timer period in milliseconds
