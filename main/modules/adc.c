@@ -182,7 +182,8 @@ Millivolt ADC_read() {
     // -46 + 0,0225x + 4,94E-07x^2
     // -20.1 + 0.0138 x + 9,75E-07 x^2
     // meas -= 0.000000494 * (meas * meas) + 0.0225 * meas - 46;
-    meas -= 0.000000975 * (meas * meas) + 0.0138 * meas - 20.1;
+    meas -= 0.00000169 * (meas * meas) - 0.000991 * meas + 45,7
+    // meas -= 0.000000975 * (meas * meas) + 0.0138 * meas - 20.1;
     ESP_LOGD(__func__, "ADC%d Channel[%d] Cali Voltage Avg: %d mV", ADC_UNIT_1 + 1, ctx.default_channel, meas);
 
     return meas;
